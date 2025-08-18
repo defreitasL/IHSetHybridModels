@@ -1,10 +1,10 @@
 LICENSE
 README.md
 setup.py
-IHSetHansonKraus1991/__init__.py
-IHSetHansonKraus1991/calibration_2.py
-IHSetHansonKraus1991/direct_run.py
-IHSetHansonKraus1991/hybrid_builder.py
+IHSetHybridModels/__init__.py
+IHSetHybridModels/calibration_2.py
+IHSetHybridModels/direct_run.py
+IHSetHybridModels/hybrid_builder.py
 IHSetHybridModels.egg-info/PKG-INFO
 IHSetHybridModels.egg-info/SOURCES.txt
 IHSetHybridModels.egg-info/dependency_links.txt
