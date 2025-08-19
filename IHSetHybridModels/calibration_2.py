@@ -102,8 +102,8 @@ class cal_Hybrid_2(CoastlineModel):
             else:
                 lowers = np.hstack((lowers,self.lb[4]))
                 uppers = np.hstack((uppers,self.ub[4]))
-            lowers = np.hstack((lowers, np.log(self.lb[5])))
-            uppers = np.hstack((uppers, np.log(self.ub[5])))
+            lowers = np.hstack((lowers, self.lb[5]))
+            uppers = np.hstack((uppers, self.ub[5]))
         if self.switch_Kal == 1:
             # each parameters is defined for each transect
             if self.cs_model == 'Yates et al. (2009)':
@@ -129,8 +129,8 @@ class cal_Hybrid_2(CoastlineModel):
                         lowers = np.hstack((lowers, self.lb[4]))
                         uppers = np.hstack((uppers, self.ub[4]))
                 for _ in range(5*self.ntrs+1, 6*self.ntrs+1):
-                    lowers = np.hstack((lowers, np.log(self.lb[5])))
-                    uppers = np.hstack((uppers, np.log(self.ub[5])))
+                    lowers = np.hstack((lowers, self.lb[5]))
+                    uppers = np.hstack((uppers, self.ub[5]))
             elif self.cs_model == 'Davidson et al. (2013)':
                 lowers = np.array([self.lb[0]])
                 uppers = np.array([self.ub[0]])
@@ -151,8 +151,8 @@ class cal_Hybrid_2(CoastlineModel):
                         lowers = np.hstack((lowers, self.lb[3]))
                         uppers = np.hstack((uppers, self.ub[3]))
                 for _ in range(4*self.ntrs+1, 5*self.ntrs+1):
-                    lowers = np.hstack((lowers, np.log(self.lb[4])))
-                    uppers = np.hstack((uppers, np.log(self.ub[4])))
+                    lowers = np.hstack((lowers, self.lb[4]))
+                    uppers = np.hstack((uppers, self.ub[4]))
             elif self.cs_model == 'Miller and Dean (2004)':
                 lowers = np.array([self.lb[0]])
                 uppers = np.array([self.ub[0]])
@@ -173,8 +173,8 @@ class cal_Hybrid_2(CoastlineModel):
                         lowers = np.hstack((lowers, self.lb[3]))
                         uppers = np.hstack((uppers, self.ub[3]))
                 for _ in range(4*self.ntrs+1, 5*self.ntrs+1):
-                    lowers = np.hstack((lowers, np.log(self.lb[4])))
-                    uppers = np.hstack((uppers, np.log(self.ub[4])))
+                    lowers = np.hstack((lowers, self.lb[4]))
+                    uppers = np.hstack((uppers, self.ub[4]))
 
         self.lowers = lowers
         self.uppers = uppers
