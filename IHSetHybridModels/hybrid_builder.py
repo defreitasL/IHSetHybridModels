@@ -3,7 +3,7 @@ from numba import njit
 # from datetime import datetime
 from IHSetUtils.libjit.geometry import nauticalDir2cartesianDir, abs_pos, shore_angle
 from IHSetUtils.libjit.waves import BreakingPropagation
-from IHSetUtils.libjit.morfology import wast, BruunRule_2, wMOORE
+from IHSetUtils.libjit.morfology import wast, BruunRule2, wMOORE
 import math
 
 @njit(cache=True)
@@ -127,6 +127,8 @@ def one_step_ls(X0: np.ndarray, Y0: np.ndarray, phi: float, phi_rad: float,
     
     # propagate waves and compute transport
     hb, dirb, depthb = BreakingPropagation(hs, tp, dire, depth, alfas, Bcoef)
+    hb[hb == 0] = 0.1
+    depthb[depthb == 0] = 0.1 / Bcoef
     
     q_now, _         = lstf(hb, tp, dirb, depthb, alfas, kal, mb, D50)
 
@@ -166,8 +168,8 @@ def hybrid_y09(yi, dt,  hs, tp, dire, depth, doc, kal,
     # preallocate output and buffers
     ysol  = np.zeros((mt, n1))
     q     = np.zeros((mt, n2))
-    alfas = np.empty(n2, dtype=np.float64)      # reuse buffer for alfas
-    Ylt   = np.empty(n1, dtype=np.float64)      # buffer for longshore transport
+    alfas = np.zeros(n2)      # reuse buffer for alfas
+    Ylt   = np.empty(n1)      # buffer for longshore transport
     
     ysol[0, :] = yi
 
@@ -179,20 +181,20 @@ def hybrid_y09(yi, dt,  hs, tp, dire, depth, doc, kal,
     for t in range(1, mt):
 
         # longshore step
-        Ylt, q_now, hb, _ = one_step_ls(X0, Y0, phi[t-1], phi_rad[t-1],
+        Ylt, q_now, hb, _ = one_step_ls(X0, Y0, phi, phi_rad,
                                         hs[t-1,:], tp[t-1,:], dire[t-1,:],
                                         depth, doc[t-1,:], dt[t-1],
                                         bctype, Bcoef, mb, D50, ysol[t-1,:],
                                         lstf, alfas, Ylt, n2, kal)
         
-        hb_ = (hb[1:-1] + hb[:-2]) / 2.0  # midpoints for yates09
+        hb_ = (hb[0:n2-1] + hb[1:n2]) / 2.0  # midpoints for yates09
         
         # Yates 2009 model for each segment
         Yst = yates09_onestep(hb_**2, dt[t-1], a_y09, b_y09, cacr, cero, ysol[t-1,:])
         
-        Yvlt = dt[t-1] * vlt[t-1]
+        Yvlt = dt[t-1] * vlt
 
-        Ybru = dt[t-1] * BruunRule_2(1, mb, dSdt)
+        Ybru = dt[t-1] * BruunRule2(1, mb, dSdt)
 
         ysol[t,:]  = ysol[t-1,:] + Ylt + Yst + Yvlt + Ybru
 
@@ -211,16 +213,24 @@ def yates09_onestep(E, dt, a, b, cacr, cero, y_old):
     Seq = (E - b) / a
     E_eq = a * y_old + b
     deltaE = E - E_eq
-    sE = math.sqrt(E)
+
+    scalar_cacr = (cacr.shape[0] == 1)
+    cacr0 = cacr[0] if scalar_cacr else 0.0
+
+    scalar_cero = (cero.shape[0] == 1)
+    cero0 = cero[0] if scalar_cero else 0.0
 
     delta_y = np.zeros(n, dtype=np.float64)
 
     for i in range(n):
-        if y_old < Seq[i]:
-            delta_y[i] = dt * cacr * sE[i] * deltaE[i]
+        sE = math.sqrt(E[i])
+        if y_old[i] < Seq[i]:
+            cacri = cacr0 if scalar_cacr else cacr[i]
+            delta_y[i] = dt * cacri * sE * deltaE[i]
         else:
-            delta_y[i] = dt * cero * sE[i] * deltaE[i]
-    
+            ceroi = cero0 if scalar_cero else cero[i]
+            delta_y[i] = dt * ceroi * sE * deltaE[i]
+
     return delta_y
 
 
@@ -271,7 +281,7 @@ def hybrid_md04(yi, dt,  hs, tp, dire, depth, doc, kal,
             
         Yvlt      = dt[t-1] * vlt[t-1]
 
-        Ybru      = dt[t-1] * BruunRule_2(1, mb, dSdt)
+        Ybru      = dt[t-1] * BruunRule2(1, mb, dSdt)
 
         ysol[t,:] = ysol[t-1,:] + Ylt + Yst + Yvlt + Ybru
 
@@ -304,12 +314,19 @@ def millerdean2004_onestep(Hb, depthb, sl, wast, dt, Hberm, DY0, kero, kacr, yol
 
     yeq = DY - wast * wl / (Hberm + depthb)
 
+    scalar_kacr = (kacr.shape[0] == 1)
+    kacr0 = kacr[0] if scalar_kacr else 0.0
+
+    scalar_kero = (kero.shape[0] == 1)
+    kero0 = kero[0] if scalar_kero else 0.0
 
     for i in range(n):
         if yold < yeq[i]:
-            delta_y[i] = kacr * dt * (yeq[i] - yold)
+            cacri = kacr0 if scalar_kacr else kacr[i]
+            delta_y[i] = cacri * dt * (yeq[i] - yold)
         else:
-            delta_y[i] = kero * dt * (yeq[i] - yold)
+            keroi = kero0 if scalar_kero else kero[i]
+            delta_y[i] = keroi * dt * (yeq[i] - yold)
 
     return delta_y, DY
 
@@ -374,7 +391,7 @@ def hybrid_ShoreFor(yi, dt,  hs, tp, dire, depth, doc, kal,
         
         Yvlt = dt[t-1] * vlt[t-1]
 
-        Ybru = dt[t-1] * BruunRule_2(1, mb, dSdt)
+        Ybru = dt[t-1] * BruunRule2(1, mb, dSdt)
 
         ysol[t,:]  = ysol[t-1,:] + Ylt + Yst + Yvlt + Ybru
 
@@ -398,13 +415,21 @@ def ShoreFor_onestep(P, Omega_eq_old, omega, alpha, diff_cm_cp, cp, dt):
     n = P.shape[0]
     S = np.zeros(n, dtype=np.float64)
     OmegaEQ = np.zeros(n, dtype=np.float64)
-    
+
+    scalar_diff_cm_cp = (diff_cm_cp.shape[0] == 1)
+    diff_cm_cp0 = diff_cm_cp[0] if scalar_diff_cm_cp else 0.0
+
+    scalar_cp = (cp.shape[0] == 1)
+    cp0 = cp[0] if scalar_cp else 0.0
+
     for i in range(1, n):
+        diff_cm_cpi = diff_cm_cp0 if scalar_diff_cm_cp else diff_cm_cp[i]
+        cp_i = cp0 if scalar_cp else cp[i]
         OmegaEQ[i] = alpha * Omega_eq_old + (1.0 - alpha) * omega[i]
         sP = math.sqrt(P[i])
         F = sP * (OmegaEQ[i] - omega[i])
         cond_neg = 1.0 if F < 0.0 else 0.0
-        inc = F * (diff_cm_cp * cond_neg + cp)
+        inc = F * (diff_cm_cpi * cond_neg + cp_i)
         S[i] = dt * inc
 
     return S, OmegaEQ
