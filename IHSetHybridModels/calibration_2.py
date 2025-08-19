@@ -32,6 +32,8 @@ class cal_Hybrid_2(CoastlineModel):
         self.switch_Kal = self.cfg['switch_Kal']
         self.cs_model = self.cfg['cs_model']
         self.dSdt = self.cfg['dSdt']
+        if self.cs_model != 'Yates et al. (2009)':
+            self.D50 = self.cfg['D50']
         self.y_ini = np.zeros_like(self.Obs_splited_[0,:])
         for i in range(self.ntrs):
             self.y_ini[i] = np.nanmean(self.Obs_splited_[:, i])
@@ -90,20 +92,37 @@ class cal_Hybrid_2(CoastlineModel):
             if self.cs_model == 'Yates et al. (2009)':
                 lowers = np.array([np.log(self.lb[0]), self.lb[1], np.log(self.lb[2]), np.log(self.lb[3])])
                 uppers = np.array([np.log(self.ub[0]), self.ub[1], np.log(self.ub[2]), np.log(self.ub[3])])
+                if self.is_exp:
+                    lowers = np.hstack((lowers,np.log(self.lb[4])))
+                    uppers = np.hstack((uppers,np.log(self.ub[4])))
+                else:
+                    lowers = np.hstack((lowers,self.lb[4]))
+                    uppers = np.hstack((uppers,self.ub[4]))
+                lowers = np.hstack((lowers, self.lb[5]))
+                uppers = np.hstack((uppers, self.ub[5]))
             elif self.cs_model == 'Davidson et al. (2013)':
                 lowers = np.array([self.lb[0], np.log(self.lb[1]), np.log(self.lb[2])])
                 uppers = np.array([self.ub[0], np.log(self.ub[1]), np.log(self.ub[2])])
+                if self.is_exp:
+                    lowers = np.hstack((lowers,np.log(self.lb[3])))
+                    uppers = np.hstack((uppers,np.log(self.ub[3])))
+                else:
+                    lowers = np.hstack((lowers,self.lb[3]))
+                    uppers = np.hstack((uppers,self.ub[3]))
+                lowers = np.hstack((lowers, self.lb[4]))
+                uppers = np.hstack((uppers, self.ub[4]))
             elif self.cs_model == 'Miller and Dean (2004)':
                 lowers = np.array([np.log(self.lb[0]), np.log(self.lb[1]), self.lb[2]])
                 uppers = np.array([np.log(self.ub[0]), np.log(self.ub[1]), self.ub[2]])
-            if self.is_exp:
-                lowers = np.hstack((lowers,np.log(self.lb[4])))
-                uppers = np.hstack((uppers,np.log(self.ub[4])))
-            else:
-                lowers = np.hstack((lowers,self.lb[4]))
-                uppers = np.hstack((uppers,self.ub[4]))
-            lowers = np.hstack((lowers, self.lb[5]))
-            uppers = np.hstack((uppers, self.ub[5]))
+                if self.is_exp:
+                    lowers = np.hstack((lowers,np.log(self.lb[3])))
+                    uppers = np.hstack((uppers,np.log(self.ub[3])))
+                else:
+                    lowers = np.hstack((lowers,self.lb[3]))
+                    uppers = np.hstack((uppers,self.ub[3]))
+                lowers = np.hstack((lowers, self.lb[4]))
+                uppers = np.hstack((uppers, self.ub[4]))
+            
         if self.switch_Kal == 1:
             # each parameters is defined for each transect
             if self.cs_model == 'Yates et al. (2009)':
@@ -318,11 +337,11 @@ class cal_Hybrid_2(CoastlineModel):
                                 self.dSdt,
                                 self.lst_f)
         elif self.cs_model == 'Davidson et al. (2013)':
-            phi = par[:,self.idx_list[0]]
-            cp = par[:,self.idx_list[1]]
-            cm = par[:,self.idx_list[2]]
-            K = par[:,self.idx_list[3]]
-            vlt = par[:,self.idx_list[4]]
+            phi = par[self.idx_list[0]]
+            cp = par[self.idx_list[1]]
+            cm = par[self.idx_list[2]]
+            K = par[self.idx_list[3]]
+            vlt = par[self.idx_list[4]]
             Ymd, _ = hybrid_ShoreFor(self.y_ini,
                                     self.dt,
                                     self.hs,
@@ -399,18 +418,27 @@ class cal_Hybrid_2(CoastlineModel):
             self.par_values[self.idx_list[3]] = -np.exp(self.par_values[self.idx_list[3]])
             if self.is_exp:
                 self.par_values[self.idx_list[4]] = np.exp(self.par_values[self.idx_list[4]])
-            self.par_values[self.idx_list[5]] = np.exp(self.par_values[self.idx_list[5]])
+
         elif self.cs_model == 'Davidson et al. (2013)':
             self.par_names = []
-            for i, par in enumerate(['phi', 'cp', 'cm', 'K', 'vlt']):
-                for j in range(len(self.idx_list[i])):
-                    self.par_names.append(f'{par}_{j+1}')
-
+            if self.switch_Kal == 0:
+                for i, par in enumerate(['phi', 'cp', 'cm', 'K', 'vlt']):
+                    self.par_names.append(f'{par}')
+            else:
+                for i, par in enumerate(['phi', 'cp', 'cm', 'K', 'vlt']):
+                    trs = 0
+                    for j in self.idx_list[i]:
+                        if par == 'K':
+                            self.par_names.append(f'{par}_trs_{trs+0.5}')
+                            if j == self.ntrs + 1:
+                                self.par_names.append(f'{par}_trs_{trs+0.5}')
+                        else:
+                            self.par_names.append(f'{par}_trs_{trs+1}')
+                        trs += 1
             self.par_values[self.idx_list[1]] = np.exp(self.par_values[self.idx_list[1]])
             self.par_values[self.idx_list[2]] = np.exp(self.par_values[self.idx_list[2]])
             if self.is_exp:
                 self.par_values[self.idx_list[3]] = np.exp(self.par_values[self.idx_list[3]])
-            self.par_values[self.idx_list[4]] = np.exp(self.par_values[self.idx_list[4]])
 
         elif self.cs_model == 'Miller and Dean (2004)':
             self.par_names = []

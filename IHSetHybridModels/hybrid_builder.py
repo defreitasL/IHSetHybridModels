@@ -359,31 +359,34 @@ def hybrid_ShoreFor(yi, dt,  hs, tp, dire, depth, doc, kal,
     dt_ /= dt.shape[0]
 
     tau = phi_sf * 24.0
-    alpha = math.exp(-math.log(10.0) * dt_ / tau)
-    
+    alpha = np.zeros(phi_sf.shape[0], dtype=np.float64)
+    for k in range(phi_sf.shape[0]):
+        alpha[k] = math.exp(-math.log(10.0) * dt_ / tau[k])
+
     diff_cm_cp = cm - cp
 
     ws = wMOORE(D50)
 
-    tp_ = (tp[t-1, 1:-1] + tp[t-1, :-2]) / 2.0
-    hb_ = (hs[t-1, 1:-1] + hs[t-1, :-2]) / 2.0
+    tp_ = (tp[:, 0:n2-1] + tp[:, 1:n2]) / 2.0
+    
+    hb_ = (hs[0, 0:n2-1] + hs[0, 1:n2]) / 2.0  # midpoints for ShoreFor
 
     Omega_eq[0, :] = hb_ / (ws * tp_[0, :])  # initial equilibrium fall velocity
     
     for t in range(1, mt):
 
         # longshore step
-        Ylt, q_now, hb, _ = one_step_ls(X0, Y0, phi[t-1], phi_rad[t-1],
-                                             hs[t-1,:], tp[t-1,:], dire[t-1,:],
-                                             depth, doc[t-1,:], dt[t-1],
-                                             bctype, Bcoef, mb, D50, ysol[t-1,:],
-                                             lstf, alfas, Ylt, n2, kal)
+        Ylt, q_now, hb, _ = one_step_ls(X0, Y0, phi, phi_rad,
+                                        hs[t-1,:], tp[t-1,:], dire[t-1,:],
+                                        depth, doc[t-1,:], dt[t-1],
+                                        bctype, Bcoef, mb, D50, ysol[t-1,:],
+                                        lstf, alfas, Ylt, n2, kal)
         
-        hb_ = (hb[1:-1] + hb[:-2]) / 2.0  # midpoints for ShoreFor
-        tp_ = (tp[t-1, 1:-1] + tp[t-1, :-2]) / 2.0  # midpoints for ShoreFor
 
-        omega = hb_ / (ws * tp_)  # dimensionless fall velocity
-        P   = hb_ ** 2 * tp_  # wave power
+        hb_ = (hb[0:n2-1] + hb[1:n2]) / 2.0  # midpoints for ShoreFor
+
+        omega = hb_ / (ws * tp_[t-1,:])  # dimensionless fall velocity
+        P   = hb_ ** 2 * tp_[t-1,:]  # wave power
         
         # ShoreFor model for each segment
         Yst, Omega_eq[t, :] = ShoreFor_onestep(P, Omega_eq[t-1, :], omega, alpha,
@@ -418,14 +421,15 @@ def ShoreFor_onestep(P, Omega_eq_old, omega, alpha, diff_cm_cp, cp, dt):
 
     scalar_diff_cm_cp = (diff_cm_cp.shape[0] == 1)
     diff_cm_cp0 = diff_cm_cp[0] if scalar_diff_cm_cp else 0.0
+    cp0 = cp[0] if scalar_diff_cm_cp else 0.0
+    alpha0 = alpha[0] if scalar_diff_cm_cp else 0.0
 
-    scalar_cp = (cp.shape[0] == 1)
-    cp0 = cp[0] if scalar_cp else 0.0
 
-    for i in range(1, n):
+    for i in range(n):
         diff_cm_cpi = diff_cm_cp0 if scalar_diff_cm_cp else diff_cm_cp[i]
-        cp_i = cp0 if scalar_cp else cp[i]
-        OmegaEQ[i] = alpha * Omega_eq_old + (1.0 - alpha) * omega[i]
+        cp_i = cp0 if diff_cm_cp0 else cp[i]
+        alpha_i = alpha0 if scalar_diff_cm_cp else alpha[i]
+        OmegaEQ[i] = alpha_i * Omega_eq_old[i] + (1.0 - alpha_i) * omega[i]
         sP = math.sqrt(P[i])
         F = sP * (OmegaEQ[i] - omega[i])
         cond_neg = 1.0 if F < 0.0 else 0.0
