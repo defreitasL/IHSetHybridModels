@@ -127,10 +127,14 @@ def one_step_ls(X0: np.ndarray, Y0: np.ndarray, phi: float, phi_rad: float,
     
     # propagate waves and compute transport
     hb, dirb, depthb = BreakingPropagation(hs, tp, dire, depth, alfas, Bcoef)
-    hb[hb == 0] = 0.1
-    depthb[depthb == 0] = 0.1 / Bcoef
+    depthb[hb < 0.1] = 0.1 / Bcoef
+    hb[hb < 0.1] = 0.1
     
     q_now, _         = lstf(hb, tp, dirb, depthb, alfas, kal, mb, D50)
+
+    use_scalar_K = (kal.shape[0] == 1)
+    K0 = kal[0] if use_scalar_K else 0.0
+
 
     # apply boundary conditions
     if bctype[0]  == 0:
@@ -154,6 +158,7 @@ def one_step_ls(X0: np.ndarray, Y0: np.ndarray, phi: float, phi_rad: float,
     for i in range(1,n2-2):
         inv_i   = dt / dc[i]  # inverse of dx[i+1] for current element
         Ylt[i] = - inv_i * (q_now[i+1] - q_now[i]) / dx[i-1]
+    
 
     return Ylt, q_now, hb, depthb
 
@@ -198,7 +203,12 @@ def hybrid_y09(yi, dt,  hs, tp, dire, depth, doc, kal,
 
         ysol[t,:]  = ysol[t-1,:] + Ylt + Yst + Yvlt + Ybru
 
-        q[t,:]     = q_now  
+        di_div = (ysol[t,:] - ysol[t-1,:])
+
+        if np.any(di_div > 100):
+            # Apply boundary conditions
+            ysol[:,:] = np.nan
+            return ysol, q
 
     return ysol, q
 
@@ -279,13 +289,20 @@ def hybrid_md04(yi, dt,  hs, tp, dire, depth, doc, kal,
                                           dt[t-1], Hberm, Y0md, kero, kacr,
                                           ysol[t-1,:], Yst, dY0[t-1,:])
             
-        Yvlt      = dt[t-1] * vlt[t-1]
+        Yvlt      = dt[t-1] * vlt
 
         Ybru      = dt[t-1] * BruunRule2(1, mb, dSdt)
 
         ysol[t,:] = ysol[t-1,:] + Ylt + Yst + Yvlt + Ybru
 
         dY0[t,:]  = Ylt + Yvlt + Ybru
+
+        di_div = (ysol[t,:] - ysol[t-1,:])
+
+        if np.any(di_div > 100):
+            # Apply boundary conditions
+            ysol[:,:] = np.nan
+            return ysol, q
 
         q[t,:]    = q_now  
 
@@ -392,11 +409,18 @@ def hybrid_ShoreFor(yi, dt,  hs, tp, dire, depth, doc, kal,
         Yst, Omega_eq[t, :] = ShoreFor_onestep(P, Omega_eq[t-1, :], omega, alpha,
                                   diff_cm_cp, cp, dt[t-1])
         
-        Yvlt = dt[t-1] * vlt[t-1]
+        Yvlt = dt[t-1] * vlt
 
         Ybru = dt[t-1] * BruunRule2(1, mb, dSdt)
 
         ysol[t,:]  = ysol[t-1,:] + Ylt + Yst + Yvlt + Ybru
+
+        di_div = (ysol[t,:] - ysol[t-1,:])
+
+        if np.any(di_div > 100):
+            # Apply boundary conditions
+            ysol[:,:] = np.nan
+            return ysol, q
 
         q[t,:]     = q_now  
 
