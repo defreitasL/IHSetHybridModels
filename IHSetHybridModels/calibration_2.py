@@ -1,10 +1,6 @@
 import numpy as np
-import xarray as xr
-import fast_optimization as fo
 from IHSetUtils.CoastlineModel import CoastlineModel
 from .hybrid_builder import hybrid_y09, hybrid_ShoreFor, hybrid_md04
-import pandas as pd
-import json
 
 class cal_Hybrid_2(CoastlineModel):
 
@@ -34,6 +30,8 @@ class cal_Hybrid_2(CoastlineModel):
         self.dSdt = self.cfg['dSdt']
         if self.cs_model != 'Yates et al. (2009)':
             self.D50 = self.cfg['D50']
+        if self.cs_model == 'Miller and Dean (2004)':
+            self.Hberm = self.cfg['Hberm']
         self.y_ini = np.zeros_like(self.Obs_splited_[0,:])
         for i in range(self.ntrs):
             self.y_ini[i] = np.nanmean(self.Obs_splited_[:, i])
@@ -84,7 +82,7 @@ class cal_Hybrid_2(CoastlineModel):
                                  range(self.ntrs, 2*self.ntrs),
                                  range(2*self.ntrs, 3*self.ntrs),
                                  range(3*self.ntrs, 4*self.ntrs+1),
-                                 range(4*self.ntrs, 5*self.ntrs+1)]
+                                 range(4*self.ntrs+1, 5*self.ntrs+1)]
         if self.cs_model == 'Miller and Dean (2004)':
             self.sl_s = self.tide_s + self.surge_s
             self.sl = self.tide + self.surge

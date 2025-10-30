@@ -273,14 +273,14 @@ def hybrid_md04(yi, dt,  hs, tp, dire, depth, doc, kal,
     for t in range(1, mt):
 
         # longshore step
-        Ylt, q_now, hb, depthb = one_step_ls(X0, Y0, phi[t-1], phi_rad[t-1],
-                                             hs[t-1,:], tp[t-1,:], dire[t-1,:],
-                                             depth, doc[t-1,:], dt[t-1],
-                                             bctype, Bcoef, mb, D50, ysol[t-1,:],
-                                             lstf, alfas, Ylt, n2, kal)
-        
-        hb_ = (hb[1:-1] + hb[:-2]) / 2.0  # midpoints for millerdean
-        depthb_ = (depthb[1:-1] + depthb[:-2]) / 2.0  # midpoints for millerdean
+        Ylt, q_now, hb, depthb = one_step_ls(X0, Y0, phi, phi_rad,
+                                            hs[t-1,:], tp[t-1,:], dire[t-1,:],
+                                            depth, doc[t-1,:], dt[t-1],
+                                            bctype, Bcoef, mb, D50, ysol[t-1,:],
+                                            lstf, alfas, Ylt, n2, kal)
+            
+        hb_ = (hb[0:n2-1] + hb[1:n2]) / 2.0  # midpoints for millerdean
+        depthb_ = (depthb[0:n2-1] + depthb[1:n2]) / 2.0  # midpoints for millerdean
 
         wast_ = wast(hb_, D50)
         
@@ -338,12 +338,12 @@ def millerdean2004_onestep(Hb, depthb, sl, wast, dt, Hberm, DY0, kero, kacr, yol
     kero0 = kero[0] if scalar_kero else 0.0
 
     for i in range(n):
-        if yold < yeq[i]:
+        if yold[i] < yeq[i]:
             cacri = kacr0 if scalar_kacr else kacr[i]
-            delta_y[i] = cacri * dt * (yeq[i] - yold)
+            delta_y[i] = cacri * dt * (yeq[i] - yold[i])
         else:
             keroi = kero0 if scalar_kero else kero[i]
-            delta_y[i] = keroi * dt * (yeq[i] - yold)
+            delta_y[i] = keroi * dt * (yeq[i] - yold[i])
 
     return delta_y, DY
 
