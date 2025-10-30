@@ -47,7 +47,7 @@ class cal_Hybrid_2(CoastlineModel):
                                  range(4,5),
                                  range(5,6)]
             elif self.cs_model == 'Davidson et al. (2013)':
-                self.nn = 5
+                self.nn = 6
                 self.idx_list = [range(0,1),
                                  range(1,2),
                                  range(2,3),
@@ -70,12 +70,13 @@ class cal_Hybrid_2(CoastlineModel):
                                  range(4*self.ntrs, 5*self.ntrs+1),
                                  range(5*self.ntrs+1, 6*self.ntrs+1)]
             elif self.cs_model == 'Davidson et al. (2013)':
-                self.nn = (self.ntrs * 5) + 1
+                self.nn = (self.ntrs * 6) + 1
                 self.idx_list = [range(0, self.ntrs),
                                  range(self.ntrs, 2*self.ntrs),
                                  range(2*self.ntrs, 3*self.ntrs),
-                                 range(3*self.ntrs, 4*self.ntrs+1),
-                                 range(4*self.ntrs, 5*self.ntrs+1)]
+                                 range(3*self.ntrs, 4*self.ntrs),
+                                 range(4*self.ntrs, 5*self.ntrs+1),
+                                 range(5*self.ntrs+1, 6*self.ntrs+1)]
             elif self.cs_model == 'Miller and Dean (2004)':
                 self.nn = (self.ntrs * 5) + 1
                 self.idx_list = [range(0, self.ntrs),
