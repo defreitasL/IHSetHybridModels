@@ -37,7 +37,7 @@ class cal_Hybrid_2(CoastlineModel):
         self.y_ini = np.zeros_like(self.Obs_splited_[0,:])
         for i in range(self.ntrs):
             self.y_ini[i] = np.nanmean(self.Obs_splited_[:, i])
-        if self.switch_Kal == 0:
+        if self.switch_Kal == 1:
             if self.cs_model == 'Yates et al. (2009)':
                 self.nn = 6
                 self.idx_list = [range(0,1),
@@ -88,7 +88,7 @@ class cal_Hybrid_2(CoastlineModel):
             self.sl = self.tide + self.surge
 
     def _set_upper_lowers(self):
-        if self.switch_Kal == 0:
+        if self.switch_Kal == 1:
             if self.cs_model == 'Yates et al. (2009)':
                 lowers = np.array([np.log(self.lb[0]), self.lb[1], np.log(self.lb[2]), np.log(self.lb[3])])
                 uppers = np.array([np.log(self.ub[0]), self.ub[1], np.log(self.ub[2]), np.log(self.ub[3])])
@@ -123,7 +123,7 @@ class cal_Hybrid_2(CoastlineModel):
                 lowers = np.hstack((lowers, self.lb[4]))
                 uppers = np.hstack((uppers, self.ub[4]))
             
-        if self.switch_Kal == 1:
+        if self.switch_Kal == 0:
             # each parameters is defined for each transect
             if self.cs_model == 'Yates et al. (2009)':
                 lowers = np.array([np.log(self.lb[0])])
@@ -405,7 +405,7 @@ class cal_Hybrid_2(CoastlineModel):
     def _set_parameter_names(self):
         if self.cs_model == 'Yates et al. (2009)':
             self.par_names = []
-            if self.switch_Kal == 0:
+            if self.switch_Kal == 1:
                 for i, par in enumerate(['a', 'b', 'cacr', 'cero', 'K', 'vlt']):
                     self.par_names.append(f'{par}')
             else:
@@ -428,7 +428,7 @@ class cal_Hybrid_2(CoastlineModel):
 
         elif self.cs_model == 'Davidson et al. (2013)':
             self.par_names = []
-            if self.switch_Kal == 0:
+            if self.switch_Kal == 1:
                 for i, par in enumerate(['phi', 'cp', 'cm', 'b', 'K', 'vlt']):
                     self.par_names.append(f'{par}')
             else:
