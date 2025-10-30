@@ -52,7 +52,8 @@ class cal_Hybrid_2(CoastlineModel):
                                  range(1,2),
                                  range(2,3),
                                  range(3,4),
-                                 range(4,5)]
+                                 range(4,5),
+                                 range(5,6)]
             elif self.cs_model == 'Miller and Dean (2004)':
                 self.nn = 5
                 self.idx_list = [range(0,1),

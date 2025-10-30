@@ -348,7 +348,7 @@ def millerdean2004_onestep(Hb, depthb, sl, wast, dt, Hberm, DY0, kero, kacr, yol
     return delta_y, DY
 
 
-# @njit(fastmath=True, cache=True)
+@njit(fastmath=True, cache=True)
 def hybrid_ShoreFor(yi, dt,  hs, tp, dire, depth, doc, kal,
                     X0, Y0, phi, bctype, Bcoef, mb, D50,
                     phi_sf, cp, cm, b, vlt, dSdt, lstf):
