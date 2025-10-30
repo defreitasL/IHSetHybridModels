@@ -101,8 +101,8 @@ class cal_Hybrid_2(CoastlineModel):
                 lowers = np.hstack((lowers, self.lb[5]))
                 uppers = np.hstack((uppers, self.ub[5]))
             elif self.cs_model == 'Davidson et al. (2013)':
-                lowers = np.array([self.lb[0], np.log(self.lb[1]), np.log(self.lb[2])])
-                uppers = np.array([self.ub[0], np.log(self.ub[1]), np.log(self.ub[2])])
+                lowers = np.array([self.lb[0], np.log(self.lb[1]), np.log(self.lb[2]), -1])
+                uppers = np.array([self.ub[0], np.log(self.ub[1]), np.log(self.ub[2]), 1])
                 if self.is_exp:
                     lowers = np.hstack((lowers,np.log(self.lb[3])))
                     uppers = np.hstack((uppers,np.log(self.ub[3])))
@@ -162,14 +162,17 @@ class cal_Hybrid_2(CoastlineModel):
                 for _ in range(2*self.ntrs, 3*self.ntrs):
                     lowers = np.hstack((lowers, np.log(self.lb[2])))
                     uppers = np.hstack((uppers, np.log(self.ub[2])))
-                for _ in range(3*self.ntrs, 4*self.ntrs+1):
+                for _ in range(3*self.ntrs, 4*self.ntrs):
+                    lowers = np.hstack((lowers, -1))
+                    uppers = np.hstack((uppers, 1))
+                for _ in range(4*self.ntrs, 5*self.ntrs+1):
                     if self.is_exp:
                         lowers = np.hstack((lowers, np.log(self.lb[3])))
                         uppers = np.hstack((uppers, np.log(self.ub[3])))
                     else:
                         lowers = np.hstack((lowers, self.lb[3]))
                         uppers = np.hstack((uppers, self.ub[3]))
-                for _ in range(4*self.ntrs+1, 5*self.ntrs+1):
+                for _ in range(5*self.ntrs+1, 6*self.ntrs+1):
                     lowers = np.hstack((lowers, self.lb[4]))
                     uppers = np.hstack((uppers, self.ub[4]))
             elif self.cs_model == 'Miller and Dean (2004)':
@@ -221,8 +224,9 @@ class cal_Hybrid_2(CoastlineModel):
             phi = par[self.idx_list[0]]
             cp = np.exp(par[self.idx_list[1]])
             cm = np.exp(par[self.idx_list[2]])
-            K = par[self.idx_list[3]]
-            vlt = par[self.idx_list[4]]
+            b = par[self.idx_list[3]]
+            K = par[self.idx_list[4]]
+            vlt = par[self.idx_list[5]]
         elif self.cs_model == 'Miller and Dean (2004)':
             kacr = np.exp(par[self.idx_list[0]])
             kero = np.exp(par[self.idx_list[1]])
@@ -274,7 +278,8 @@ class cal_Hybrid_2(CoastlineModel):
                                       self.D50,
                                       phi,
                                       cp, 
-                                      cm, 
+                                      cm,
+                                      b,
                                       vlt,
                                       self.dSdt,
                                       self.lst_f)
@@ -340,8 +345,9 @@ class cal_Hybrid_2(CoastlineModel):
             phi = par[self.idx_list[0]]
             cp = par[self.idx_list[1]]
             cm = par[self.idx_list[2]]
-            K = par[self.idx_list[3]]
-            vlt = par[self.idx_list[4]]
+            b = par[self.idx_list[3]]
+            K = par[self.idx_list[4]]
+            vlt = par[self.idx_list[5]]
             Ymd, _ = hybrid_ShoreFor(self.y_ini,
                                     self.dt,
                                     self.hs,
@@ -359,7 +365,8 @@ class cal_Hybrid_2(CoastlineModel):
                                     self.D50,
                                     phi,
                                     cp, 
-                                    cm, 
+                                    cm,
+                                    b,
                                     vlt,
                                     self.dSdt,
                                     self.lst_f)
@@ -422,10 +429,10 @@ class cal_Hybrid_2(CoastlineModel):
         elif self.cs_model == 'Davidson et al. (2013)':
             self.par_names = []
             if self.switch_Kal == 0:
-                for i, par in enumerate(['phi', 'cp', 'cm', 'K', 'vlt']):
+                for i, par in enumerate(['phi', 'cp', 'cm', 'b', 'K', 'vlt']):
                     self.par_names.append(f'{par}')
             else:
-                for i, par in enumerate(['phi', 'cp', 'cm', 'K', 'vlt']):
+                for i, par in enumerate(['phi', 'cp', 'cm', 'b', 'K', 'vlt']):
                     trs = 0
                     for j in self.idx_list[i]:
                         if par == 'K':

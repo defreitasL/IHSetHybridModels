@@ -351,7 +351,7 @@ def millerdean2004_onestep(Hb, depthb, sl, wast, dt, Hberm, DY0, kero, kacr, yol
 @njit(fastmath=True, cache=True)
 def hybrid_ShoreFor(yi, dt,  hs, tp, dire, depth, doc, kal,
                     X0, Y0, phi, bctype, Bcoef, mb, D50,
-                    phi_sf, cp, cm, vlt, dSdt, lstf):
+                    phi_sf, cp, cm, b, vlt, dSdt, lstf):
 
     n1 = len(X0)
     mt, n2 = tp.shape
@@ -407,7 +407,7 @@ def hybrid_ShoreFor(yi, dt,  hs, tp, dire, depth, doc, kal,
         
         # ShoreFor model for each segment
         Yst, Omega_eq[t, :] = ShoreFor_onestep(P, Omega_eq[t-1, :], omega, alpha,
-                                  diff_cm_cp, cp, dt[t-1])
+                                  diff_cm_cp, cp, b, dt[t-1])
         
         Yvlt = dt[t-1] * vlt
 
@@ -427,7 +427,7 @@ def hybrid_ShoreFor(yi, dt,  hs, tp, dire, depth, doc, kal,
     return ysol, q
 
 @njit(cache=True, fastmath=True)
-def ShoreFor_onestep(P, Omega_eq_old, omega, alpha, diff_cm_cp, cp, dt):
+def ShoreFor_onestep(P, Omega_eq_old, omega, alpha, diff_cm_cp, cp, b, dt):
     """
     ShoreFor model for one step
     P:       wave power (W/m)
@@ -447,17 +447,18 @@ def ShoreFor_onestep(P, Omega_eq_old, omega, alpha, diff_cm_cp, cp, dt):
     diff_cm_cp0 = diff_cm_cp[0] if scalar_diff_cm_cp else 0.0
     cp0 = cp[0] if scalar_diff_cm_cp else 0.0
     alpha0 = alpha[0] if scalar_diff_cm_cp else 0.0
-
+    b0 = b[0] if scalar_diff_cm_cp else 0.0
 
     for i in range(n):
         diff_cm_cpi = diff_cm_cp0 if scalar_diff_cm_cp else diff_cm_cp[i]
         cp_i = cp0 if diff_cm_cp0 else cp[i]
         alpha_i = alpha0 if scalar_diff_cm_cp else alpha[i]
+        b_i = b0 if scalar_diff_cm_cp else b[i]
         OmegaEQ[i] = alpha_i * Omega_eq_old[i] + (1.0 - alpha_i) * omega[i]
         sP = math.sqrt(P[i])
         F = sP * (OmegaEQ[i] - omega[i])
         cond_neg = 1.0 if F < 0.0 else 0.0
-        inc = F * (diff_cm_cpi * cond_neg + cp_i)
+        inc = F * (diff_cm_cpi * cond_neg + cp_i) + b_i
         S[i] = dt * inc
 
     return S, OmegaEQ
