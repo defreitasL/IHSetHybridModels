@@ -2,6 +2,7 @@ LICENSE
 README.md
 setup.py
 IHSetHybridModels/__init__.py
+IHSetHybridModels/assimilation.py
 IHSetHybridModels/calibration_2.py
 IHSetHybridModels/direct_run.py
 IHSetHybridModels/hybrid_builder.py
