@@ -40,9 +40,9 @@ class assimilate_Hybrid(CoastlineModel):
             self.Hberm = cfg['Hberm']
 
         # initial shoreline vector per transect: mean of obs per transect
-        self.y_ini = np.zeros_like(self.Obs_splited_[0, :], dtype=float)
+        self.Yini = np.zeros_like(self.Obs_splited_[0, :], dtype=float)
         for i in range(self.ntrs):
-            self.y_ini[i] = float(np.nanmean(self.Obs_splited_[:, i]))
+            self.Yini[i] = float(np.nanmean(self.Obs_splited_[:, i]))
 
         # index lists (parameter layout) — same as calibration class
         if self.switch_Kal == 1:
@@ -258,7 +258,7 @@ class assimilate_Hybrid(CoastlineModel):
 
         # starting shoreline vector for this window
         if context is None or ('y_old' not in context):
-            y0 = self.y_ini.copy()
+            y0 = self.Yini.copy()
         else:
             y0 = np.asarray(context['y_old'], dtype=float)
 
@@ -329,7 +329,7 @@ class assimilate_Hybrid(CoastlineModel):
 
         for j in range(N):
             pars = self._decode_params(pop[j])
-            y0 = self.y_ini if (contexts is None or contexts[j] is None or 'y_old' not in contexts[j]) \
+            y0 = self.Yini if (contexts is None or contexts[j] is None or 'y_old' not in contexts[j]) \
                  else np.asarray(contexts[j]['y_old'], dtype=float)
 
             if self.cs_model == 'Yates et al. (2009)':
@@ -369,19 +369,19 @@ class assimilate_Hybrid(CoastlineModel):
         pars = self._decode_params(par)
         if self.cs_model == 'Yates et al. (2009)':
             Ymd, _ = hybrid_y09(
-                self.y_ini, self.dt, self.hs, self.tp, self.dir, self.depth, self.doc,
+                self.Yini, self.dt, self.hs, self.tp, self.dir, self.depth, self.doc,
                 pars['K'], self.X0, self.Y0, self.phi, self.bctype, self.Bcoef, self.mb, self.D50,
                 pars['a'], pars['b'], pars['cacr'], pars['cero'], pars['vlt'], self.dSdt, self.lst_f
             )
         elif self.cs_model == 'Davidson et al. (2013)':
             Ymd, _ = hybrid_ShoreFor(
-                self.y_ini, self.dt, self.hs, self.tp, self.dir, self.depth, self.doc,
+                self.Yini, self.dt, self.hs, self.tp, self.dir, self.depth, self.doc,
                 pars['K'], self.X0, self.Y0, self.phi, self.bctype, self.Bcoef, self.mb, self.D50,
                 pars['phi'], pars['cp'], pars['cm'], pars['b'], pars['vlt'], self.dSdt, self.lst_f
             )
         else:
             Ymd, _ = hybrid_md04(
-                self.y_ini, self.dt, self.hs, self.tp, self.dir, self.depth, self.doc,
+                self.Yini, self.dt, self.hs, self.tp, self.dir, self.depth, self.doc,
                 pars['K'], self.X0, self.Y0, self.phi, self.bctype, self.Bcoef, self.mb, self.D50,
                 self.sl, self.Hberm, pars['Y0'], pars['kacr'], pars['kero'], pars['vlt'],
                 self.dSdt, self.lst_f
