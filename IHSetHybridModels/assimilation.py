@@ -392,5 +392,59 @@ class assimilate_Hybrid(CoastlineModel):
     # Names for pretty output
     # -------------------------
     def _set_parameter_names(self):
-        # You can keep your long, existing logic; not required by the filter itself.
-        pass
+        if self.cs_model == 'Yates et al. (2009)':
+            self.par_names = []
+            if self.switch_Kal == 1:
+                for i, par in enumerate(['a', 'b', 'cacr', 'cero', 'K', 'vlt']):
+                    self.par_names.append(f'{par}')
+            else:
+                for i, par in enumerate(['a', 'b', 'cacr', 'cero', 'K', 'vlt']):
+                    trs = 0
+                    for j in self.idx_list[i]:
+                        if par == 'K':
+                            self.par_names.append(f'{par}_trs_{trs+0.5}')
+                            if j == self.ntrs + 1:
+                                self.par_names.append(f'{par}_trs_{trs+0.5}')
+                        else:
+                            self.par_names.append(f'{par}_trs_{trs+1}')
+                        trs += 1                        
+
+            self.par_values[self.idx_list[0]] = -np.exp(self.par_values[self.idx_list[0]])
+            self.par_values[self.idx_list[2]] = -np.exp(self.par_values[self.idx_list[2]])
+            self.par_values[self.idx_list[3]] = -np.exp(self.par_values[self.idx_list[3]])
+            if self.is_exp:
+                self.par_values[self.idx_list[4]] = np.exp(self.par_values[self.idx_list[4]])
+
+        elif self.cs_model == 'Davidson et al. (2013)':
+            self.par_names = []
+            if self.switch_Kal == 1:
+                for i, par in enumerate(['phi', 'cp', 'cm', 'b', 'K', 'vlt']):
+                    self.par_names.append(f'{par}')
+            else:
+                for i, par in enumerate(['phi', 'cp', 'cm', 'b', 'K', 'vlt']):
+                    trs = 0
+                    for j in self.idx_list[i]:
+                        if par == 'K':
+                            self.par_names.append(f'{par}_trs_{trs+0.5}')
+                            if j == self.ntrs + 1:
+                                self.par_names.append(f'{par}_trs_{trs+0.5}')
+                        else:
+                            self.par_names.append(f'{par}_trs_{trs+1}')
+                        trs += 1
+            self.par_values[self.idx_list[1]] = np.exp(self.par_values[self.idx_list[1]])
+            self.par_values[self.idx_list[2]] = np.exp(self.par_values[self.idx_list[2]])
+            if self.is_exp:
+                self.par_values[self.idx_list[3]] = np.exp(self.par_values[self.idx_list[3]])
+
+        elif self.cs_model == 'Miller and Dean (2004)':
+            self.par_names = []
+            for i, par in enumerate(['kacr', 'kero', 'Y0', 'K', 'vlt']):
+                for j in range(len(self.idx_list[i])):
+                    self.par_names.append(f'{par}_{j+1}')
+
+            self.par_values[self.idx_list[0]] = np.exp(self.par_values[self.idx_list[0]])
+            self.par_values[self.idx_list[1]] = np.exp(self.par_values[self.idx_list[1]])
+
+            if self.is_exp:
+                self.par_values[self.idx_list[3]] = np.exp(self.par_values[self.idx_list[3]])
+            self.par_values[self.idx_list[4]] = np.exp(self.par_values[self.idx_list[4]])
