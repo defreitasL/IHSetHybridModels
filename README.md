@@ -13,15 +13,20 @@ pip install git+https://github.com/defreitasL/IHSetHybridModels.git
 ---
 ## :zap: Main methods
 
-* [HansonKraus1991](./IHSetHansonKraus1991/HansonKraus1991.py):
+* [hybrids...](./IHSetHybridModels/hybrid_builder.py):
 ```python
 # model's it self
-hansonKraus1991(yi, dt, dx, hs, tp, dir, depth, doc, kal, X0, Y0, phi, bctype)
+hybrid...(vars)
 ```
-* [cal_HansonKraus1991](./IHSetHansonKraus1991/calibration.py):
+* [cal_Hybrid_2](./IHSetHybridModels/calibration_2.py):
 ```python
 # class that prepare the simulation framework
-cal_HansonKraus1991(path)
+cal_Hybrid_2(path)
+```
+* [cal_Hybrid_2](./IHSetHybridModels/assimilation.py):
+```python
+# class that prepare the simulation framework
+assimilate_Hybrid(path)
 ```
 
 
@@ -29,15 +34,16 @@ cal_HansonKraus1991(path)
 ## :package: Package structures
 ````
 
-IHSetHansonKraus1991
+IHSetHybridModels
 |
 ├── LICENSE
 ├── README.md
 ├── build
 ├── dist
-├── IHSetHansonKraus1991
-│   ├── calibration.py
-│   └── HansonKraus1991.py
+├── IHSetHybridModels
+│   ├── calibration_2.py
+│   ├── assimilation.py
+│   └── hybrid_builder.py
 └── .gitignore
 
 ````
