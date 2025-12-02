@@ -336,7 +336,7 @@ def hybrid_md04(yi, dt,  hs, tp, dire, depth, doc, kal,
 
         Ybru      = dt[t-1] * BruunRule2(1, mb, dSdt)   
 
-        dY0[t,:]  = dylt + Yvlt + Ybru     
+        # dY0[t,:]  = dylt + Yvlt + Ybru     
         # Yates 2009 model for each segment
         Yst, Y0md = millerdean2004_onestep(hb_, depthb_, sl[t, :], wast_,
                                           dt[t-1], Hberm, Y0md, kero, kacr,
