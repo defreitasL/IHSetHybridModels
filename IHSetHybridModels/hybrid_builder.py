@@ -116,6 +116,7 @@ def one_step_ls(X0: np.ndarray, Y0: np.ndarray, phi: float, phi_rad: float,
     Ylt:      array to store longshore transport (buffer)
     n2:       number of segments (length of tp, hs, dire)
     """
+    dt_i = dt * 3600.0  # convert to seconds
     # compute alfas once per time step
     XN, YN  = abs_pos(X0, Y0, phi_rad, yold)
     normals = _compute_normals(XN, YN, phi)
@@ -126,27 +127,22 @@ def one_step_ls(X0: np.ndarray, Y0: np.ndarray, phi: float, phi_rad: float,
     alfas[-1]   = normals[-1]
 
 
-    dx_nodes = np.empty_like(Ylt)
-    dx_nodes[0]    = dx[0]
-    dx_nodes[-1]   = dx[-1]
-    dx_nodes[1:-1] = 0.5*(dx[:-1] + dx[1:])
+    # dx_nodes = np.empty_like(Ylt)
+    # dx_nodes[0]    = dx[0]
+    # dx_nodes[-1]   = dx[-1]
+    # dx_nodes[1:-1] = 0.5*(dx[:-1] + dx[1:])
 
     
     # propagate waves and compute transport
     hb, dirb, depthb = BreakingPropagation(hs, tp, dire, depth, alfas, Bcoef)
-    depthb[hb < 0.1] = 0.1 / Bcoef
-    hb[hb < 0.1] = 0.1
+    # depthb[hb < 0.1] = 0.1 / Bcoef
+    # hb[hb < 0.1] = 0.1
 
     dhbdx = np.zeros_like(hb)
 
     dhbdx[1:-1] = np.diff(0.5*(hb[:-1] + hb[1:])) / dx
 
     q_now, q0         = lstf(hb, tp, dirb, depthb, alfas, kal, mb, D50, dhbdx)
-
-    use_scalar_K = (kal.shape[0] == 1)
-    K0 = kal[0] if use_scalar_K else 0.0
-   
-
 
     # apply boundary conditions
     if bctype[0]  == 0:
@@ -159,31 +155,39 @@ def one_step_ls(X0: np.ndarray, Y0: np.ndarray, phi: float, phi_rad: float,
         q_now[-1] = q_now[-2]
 
     # diffusion midpoints
-    Df_nodes = 0.5 * (doc[1:] + doc[:-1])
+    dc = 0.5 * (doc[1:] + doc[:-1])
 
     # Df_nodes = np.empty_like(Ylt)
     # Df_nodes[0]    = Df_faces[0]
     # Df_nodes[-1]   = Df_faces[-1]
     # Df_nodes[1:-1] = 0.5*(Df_faces[:-1] + Df_faces[1:])
 
-    Qmax = np.max(np.abs(q0))
-    if Qmax > 0:
-        dx_min = np.min(dx)
-        Dmin   = np.min(Df_nodes)   # (B+dc) en caras
-        dt_cfl = 0.25 * Dmin * dx_min**2 / max(Qmax, 1e-9)
-        nsub   = int(np.ceil(dt / max(dt_cfl, 1e-9)))
-    else:
-        nsub = 1
+    # Qmax = np.max(np.abs(q0))
+    # if Qmax > 0:
+    #     dx_min = np.min(dx)
+    #     Dmin   = np.min(Df_nodes)   # (B+dc) en caras
+    #     dt_cfl = 0.25 * Dmin * dx_min**2 / max(Qmax, 1e-9)
+    #     nsub   = int(np.ceil(dt_i / max(dt_cfl, 1e-9)))
+    # else:
+    #     nsub = 1
 
-    Ylt[:] = 0.0
+    # Ylt[:] = 0.0
 
-    dt_sub = dt / nsub
-    for _ in range(nsub):
-        Ylt[0]    += -(dt_sub / Df_nodes[0])    * (q_now[1]      - q_now[0])      / dx_nodes[0]      # no-flux ⇒ 0
-        Ylt[-1]   += -(dt_sub / Df_nodes[-1])   * (q_now[-1]     - q_now[-2])     / dx_nodes[-1]
-        for i in range(1, len(Ylt)-1):
-            Ylt[i] += -(dt_sub / Df_nodes[i])   * (q_now[i]      - q_now[i-1])    / dx_nodes[i]
+    # dt_sub = dt_i / nsub
+    # for _ in range(nsub):
+    #     Ylt[0]    += -(dt_sub / Df_nodes[0])    * (q_now[1]      - q_now[0])      / dx[0]      # no-flux ⇒ 0
+    #     Ylt[-1]   += -(dt_sub / Df_nodes[-1])   * (q_now[-1]     - q_now[-2])     / dx[-1]
+    #     for i in range(1, len(Ylt)-1):
+    #         Ylt[i] += -(dt_sub / Df_nodes[i])   * (q_now[i]      - q_now[i-1])    / dx[i]
+    inv_i = dt_i / dc[0]  # inverse of dc[1] for first element
+    Ylt[0] = yold[0] - inv_i * (q_now[1] - q_now[0]) / dx[0]
 
+    inv_i = dt_i / dc[-1]  # inverse of dc[-1] for last element
+    Ylt[-1] = yold[-1] - inv_i * (q_now[-1] - q_now[-2]) / dx[-1]
+
+    for i in range(1,n2-2):
+        inv_i   = dt_i / dc[i]  # inverse of dx[i+1] for current element
+        Ylt[i] = yold[i] - inv_i * (q_now[i+1] - q_now[i]) / dx[i-1]
 
     return Ylt, q_now, hb, depthb
 
@@ -201,8 +205,10 @@ def hybrid_y09(yi, dt,  hs, tp, dire, depth, doc, kal,
     q     = np.zeros((mt, n2))
     alfas = np.zeros(n2)      # reuse buffer for alfas
     Ylt   = np.empty(n1)      # buffer for longshore transport
+    ysol_lt   = np.zeros((mt, n1))
     
     ysol[0, :] = yi
+    ysol_st[0,:] = yi
 
     phi_rad = np.empty(n1, dtype=np.float64)
 
@@ -213,29 +219,34 @@ def hybrid_y09(yi, dt,  hs, tp, dire, depth, doc, kal,
 
         # longshore step
         Ylt, q_now, hb, _ = one_step_ls(X0, Y0, phi, phi_rad,
-                                        hs[t-1,:], tp[t-1,:], dire[t-1,:],
-                                        depth, doc[t-1,:], dt[t-1],
+                                        hs[t,:], tp[t,:], dire[t,:],
+                                        depth, doc[t,:], dt[t-1],
                                         bctype, Bcoef, mb, D50, ysol[t-1,:],
                                         lstf, alfas, Ylt, n2, kal)
         
+        if t == 1:        
+            ysol_lt[t,:] = Ylt
+        else:
+            ysol_lt[t,:] = ysol_lt[t-1,:] + (Ylt - ysol[t-1,:])
         hb_ = (hb[0:n2-1] + hb[1:n2]) / 2.0  # midpoints for yates09
         
         # Yates 2009 model for each segment
         Yst = yates09_onestep(hb_**2, dt[t-1], a_y09, b_y09, cacr, cero, ysol[t-1,:])
+        ysol_st[t,:] = ysol_st[t-1,:] + Yst
         
         Yvlt = dt[t-1] * vlt
 
         Ybru = dt[t-1] * BruunRule2(1, mb, dSdt)
 
-        ysol[t,:]  = ysol[t-1,:] + Ylt + Yvlt + Ybru + Yst
+        ysol[t,:]  = Ylt + Yvlt + Ybru + Yst
 
         di_div = (ysol[t,:] - ysol[t-1,:])
 
         if np.any(di_div > 1000):
             ysol[:,:] = np.nan
-            return ysol, q
+            return ysol, q, ysol_lt
 
-    return ysol, q
+    return ysol, q, ysol_lt
 
 @njit(cache=True, fastmath=True)
 def yates09_onestep(E, dt, a, b, cacr, cero, y_old):
@@ -289,7 +300,9 @@ def hybrid_md04(yi, dt,  hs, tp, dire, depth, doc, kal,
     Yst  = np.zeros(n1)       # buffer for millerdean transport
     dY0 = np.zeros((mt, n1))                    # buffer for millerdean delta_y0
     Y0md = np.zeros(n1) + DY0 # initial baseline for millerdean
+    ysol_lt   = np.zeros((mt, n1))
     ysol[0, :] = yi
+    ysol_lt[0, :] = yi
 
     phi_rad = np.empty(n1, dtype=np.float64)
 
@@ -300,39 +313,47 @@ def hybrid_md04(yi, dt,  hs, tp, dire, depth, doc, kal,
 
         # longshore step
         Ylt, q_now, hb, depthb = one_step_ls(X0, Y0, phi, phi_rad,
-                                            hs[t-1,:], tp[t-1,:], dire[t-1,:],
-                                            depth, doc[t-1,:], dt[t-1],
+                                            hs[t,:], tp[t,:], dire[t,:],
+                                            depth, doc[t,:], dt[t-1],
                                             bctype, Bcoef, mb, D50, ysol[t-1,:],
                                             lstf, alfas, Ylt, n2, kal)
-            
+
+
+        if t == 1:
+            ysol_lt[t,:] =  Ylt
+        else:
+            ysol_lt[t,:] =  ysol_lt[t-1,:] + (Ylt - ysol[t-1,:])
+
+        
         hb_ = (hb[0:n2-1] + hb[1:n2]) / 2.0  # midpoints for millerdean
         depthb_ = (depthb[0:n2-1] + depthb[1:n2]) / 2.0  # midpoints for millerdean
 
         wast_ = wast(hb_, D50)
-        
+
+        dylt = Ylt - ysol[t-1,:]
+
+        Yvlt      = dt[t-1] * vlt
+
+        Ybru      = dt[t-1] * BruunRule2(1, mb, dSdt)   
+
+        dY0[t,:]  = dylt + Yvlt + Ybru     
         # Yates 2009 model for each segment
-        Yst, Y0md = millerdean2004_onestep(hb_, depthb_, sl[t-1, :], wast_,
+        Yst, Y0md = millerdean2004_onestep(hb_, depthb_, sl[t, :], wast_,
                                           dt[t-1], Hberm, Y0md, kero, kacr,
                                           ysol[t-1,:], Yst, dY0[t-1,:])
             
-        Yvlt      = dt[t-1] * vlt
-
-        Ybru      = dt[t-1] * BruunRule2(1, mb, dSdt)
-
-        ysol[t,:] = ysol[t-1,:] + Ylt + Yst + Yvlt + Ybru
-
-        dY0[t,:]  = Ylt + Yvlt + Ybru
+        ysol[t,:] = Ylt + Yst + Yvlt + Ybru
 
         di_div = (ysol[t,:] - ysol[t-1,:])
 
         if np.any(di_div > 1000):
             # Apply boundary conditions
             ysol[:,:] = np.nan
-            return ysol, q
+            return ysol, q, ysol_lt
 
         q[t,:]    = q_now  
 
-    return ysol, q
+    return ysol, q, ysol_lt
 
 
 @njit(cache=True, fastmath=True)

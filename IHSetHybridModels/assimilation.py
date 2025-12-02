@@ -272,7 +272,7 @@ class assimilate_Hybrid(CoastlineModel):
             y0 = np.asarray(context['y_old'], dtype=float)
 
         if self.cs_model == 'Yates et al. (2009)':
-            Ymd, _ = hybrid_y09(
+            Ymd, _, _ = hybrid_y09(
                 y0,
                 self.dt_s[i0:i1],
                 self.hs_s[i0:i1],
@@ -304,7 +304,7 @@ class assimilate_Hybrid(CoastlineModel):
                 self.lst_f
             )
         else:  # Miller & Dean (2004)
-            Ymd, _ = hybrid_md04(
+            Ymd, _, _ = hybrid_md04(
                 y0,
                 self.dt_s[i0:i1],
                 self.hs_s[i0:i1],
@@ -342,7 +342,7 @@ class assimilate_Hybrid(CoastlineModel):
                  else np.asarray(contexts[j]['y_old'], dtype=float)
 
             if self.cs_model == 'Yates et al. (2009)':
-                Ymd, _ = hybrid_y09(
+                Ymd, _, _ = hybrid_y09(
                     y0, self.dt_s[i0:i1], self.hs_s[i0:i1], self.tp_s[i0:i1], self.dir_s[i0:i1],
                     self.depth, self.doc, pars['K'], self.X0, self.Y0, self.phi, self.bctype,
                     self.Bcoef, self.mb, self.D50, pars['a'], pars['b'], pars['cacr'], pars['cero'],
@@ -356,7 +356,7 @@ class assimilate_Hybrid(CoastlineModel):
                     pars['vlt'], self.dSdt, self.lst_f
                 )
             else:
-                Ymd, _ = hybrid_md04(
+                Ymd, _, _ = hybrid_md04(
                     y0, self.dt_s[i0:i1], self.hs_s[i0:i1], self.tp_s[i0:i1], self.dir_s[i0:i1],
                     self.depth, self.doc, pars['K'], self.X0, self.Y0, self.phi, self.bctype,
                     self.Bcoef, self.mb, self.D50, self.sl_s[i0:i1], self.Hberm, pars['Y0'],
@@ -382,7 +382,7 @@ class assimilate_Hybrid(CoastlineModel):
             K = par[self.idx_list[4]]
             vlt = par[self.idx_list[5]]
 
-            Ymd, _ = hybrid_y09(self.Yini,
+            Ymd, _, self.ylt = hybrid_y09(self.Yini,
                                 self.dt,
                                 self.hs,
                                 self.tp,
@@ -410,7 +410,7 @@ class assimilate_Hybrid(CoastlineModel):
             cm = par[self.idx_list[2]]
             K = par[self.idx_list[3]]
             vlt = par[self.idx_list[4]]
-            Ymd, _ = hybrid_ShoreFor(self.Yini,
+            Ymd, _, self.ylt = hybrid_ShoreFor(self.Yini,
                                     self.dt,
                                     self.hs,
                                     self.tp,

@@ -240,7 +240,7 @@ class cal_Hybrid_2(CoastlineModel):
             K = np.exp(K)
 
         if self.cs_model == 'Yates et al. (2009)':
-            Ymd, _ = hybrid_y09(self.Yini,
+            Ymd, _, _ = hybrid_y09(self.Yini,
                                 self.dt,
                                 self.hs_s,
                                 self.tp_s,
@@ -285,7 +285,7 @@ class cal_Hybrid_2(CoastlineModel):
                                       self.dSdt,
                                       self.lst_f)
         elif self.cs_model == 'Miller and Dean (2004)':
-            Ymd, _ = hybrid_md04(self.Yini,
+            Ymd, _, _ = hybrid_md04(self.Yini,
                                  self.dt,
                                  self.hs_s,
                                  self.tp_s,
@@ -320,7 +320,7 @@ class cal_Hybrid_2(CoastlineModel):
             K = par[self.idx_list[4]]
             vlt = par[self.idx_list[5]]
 
-            Ymd, _ = hybrid_y09(self.Yini,
+            Ymd, _, self.ylt = hybrid_y09(self.Yini,
                                 self.dt,
                                 self.hs,
                                 self.tp,
@@ -375,7 +375,7 @@ class cal_Hybrid_2(CoastlineModel):
             Y0 = par[self.idx_list[2]]
             K = par[self.idx_list[3]]
             vlt = par[self.idx_list[4]]
-            Ymd, _ = hybrid_md04(self.Yini,
+            Ymd, _, self.ylt = hybrid_md04(self.Yini,
                                  self.dt,
                                  self.hs,
                                  self.tp,
